@@ -1,0 +1,18 @@
+[package]
+name = "cadenza-app"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "1" }
+
+[dependencies]
+tauri = { version = "1", features = ["api-all"] }
+parking_lot = "0.12"
+
+cadenza-core = { path = "../crates/cadenza-core" }
+cadenza-infra-audio-cpal = { path = "../crates/cadenza-infra-audio-cpal" }
+cadenza-infra-midi-midir = { path = "../crates/cadenza-infra-midi-midir" }
+cadenza-infra-synth-simple = { path = "../crates/cadenza-infra-synth-simple" }
+cadenza-infra-storage-fs = { path = "../crates/cadenza-infra-storage-fs" }
+cadenza-ports = { path = "../crates/cadenza-ports" }

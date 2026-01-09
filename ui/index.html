@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cadenza</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark"></div>
+          <div>
+            <div class="brand-title">Cadenza</div>
+            <div class="brand-subtitle">Practice shell</div>
+          </div>
+        </div>
+        <nav class="tabs">
+          <button class="tab is-active" data-view="practice">Practice</button>
+          <button class="tab" data-view="settings">Settings</button>
+        </nav>
+      </header>
+
+      <main class="content">
+        <section class="view is-active" id="view-practice">
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Practice</h2>
+              <div class="pill" id="practice-status">Idle</div>
+            </div>
+            <div class="panel-body grid">
+              <div class="card">
+                <h3>Transport</h3>
+                <div class="controls">
+                  <button id="btn-play">Play</button>
+                  <button id="btn-pause">Pause</button>
+                  <button id="btn-stop">Stop</button>
+                </div>
+                <div class="stat">
+                  <span>Tick</span>
+                  <strong id="transport-tick">0</strong>
+                </div>
+                <div class="stat">
+                  <span>Tempo</span>
+                  <strong id="transport-tempo">1.0x</strong>
+                </div>
+              </div>
+              <div class="card">
+                <h3>Judge</h3>
+                <div class="judge-grade" id="judge-grade">—</div>
+                <div class="stat">
+                  <span>Combo</span>
+                  <strong id="judge-combo">0</strong>
+                </div>
+                <div class="stat">
+                  <span>Score</span>
+                  <strong id="judge-score">0</strong>
+                </div>
+                <div class="stat">
+                  <span>Accuracy</span>
+                  <strong id="judge-accuracy">0%</strong>
+                </div>
+              </div>
+              <div class="card">
+                <h3>Load MIDI</h3>
+                <div class="input-row">
+                  <input id="midi-path" type="text" placeholder="/path/to/file.mid" />
+                  <button id="btn-browse-midi" type="button">Browse</button>
+                </div>
+                <button id="btn-load-midi">Load</button>
+                <p class="hint">Use an absolute path for now.</p>
+              </div>
+              <div class="card wide">
+                <h3>Recent Input</h3>
+                <div class="event-list" id="recent-inputs">No input yet.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-settings">
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Settings</h2>
+              <div class="pill">Audio + MIDI</div>
+            </div>
+            <div class="panel-body grid">
+              <div class="card">
+                <h3>Audio Output</h3>
+                <select id="audio-output"></select>
+                <button id="btn-refresh-audio">Refresh</button>
+              </div>
+              <div class="card">
+                <h3>MIDI Input</h3>
+                <select id="midi-input"></select>
+                <button id="btn-refresh-midi">Refresh</button>
+              </div>
+              <div class="card">
+                <h3>Monitor</h3>
+                <label class="toggle">
+                  <input id="monitor-toggle" type="checkbox" />
+                  <span>Enable user monitor</span>
+                </label>
+              </div>
+              <div class="card">
+                <h3>Master Volume</h3>
+                <input id="master-volume" type="range" min="0" max="1" step="0.01" />
+                <div class="stat">
+                  <span>Level</span>
+                  <strong id="master-volume-value">0.8</strong>
+                </div>
+              </div>
+              <div class="card">
+                <h3>Bus Volumes</h3>
+                <label>Monitor</label>
+                <input id="bus-user" type="range" min="0" max="1" step="0.01" />
+                <label>Autopilot</label>
+                <input id="bus-auto" type="range" min="0" max="1" step="0.01" />
+                <label>Metronome</label>
+                <input id="bus-metro" type="range" min="0" max="1" step="0.01" />
+              </div>
+              <div class="card wide">
+                <h3>Diagnostics</h3>
+                <div class="input-row">
+                  <input id="diag-path" type="text" placeholder="/tmp/cadenza-diagnostics" />
+                  <button id="btn-browse-diag" type="button">Browse</button>
+                </div>
+                <button id="btn-export-diag">Export bundle</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="main.js"></script>
+  </body>
+</html>

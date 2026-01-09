@@ -1,0 +1,12 @@
+[package]
+name = "cadenza-domain-eval"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cadenza-ports = { path = "../cadenza-ports" }
+cadenza-domain-score = { path = "../cadenza-domain-score" }
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+pretty_assertions = "1"

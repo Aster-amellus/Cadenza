@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/cadenza-ports",
+  "crates/cadenza-domain-score",
+  "crates/cadenza-domain-eval",
+  "crates/cadenza-core",
+  "crates/cadenza-infra-audio-cpal",
+  "crates/cadenza-infra-midi-midir",
+  "crates/cadenza-infra-synth-simple",
+  "crates/cadenza-infra-storage-fs",
+  "src-tauri",
+]

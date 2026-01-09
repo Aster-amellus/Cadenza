@@ -1,0 +1,27 @@
+{
+  "build": {
+    "beforeBuildCommand": "",
+    "beforeDevCommand": "",
+    "devPath": "../ui",
+    "distDir": "../ui"
+  },
+  "package": {
+    "productName": "Cadenza",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "windows": [
+      {
+        "title": "Cadenza",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 640,
+        "resizable": true
+      }
+    ],
+    "allowlist": {
+      "all": true
+    }
+  }
+}

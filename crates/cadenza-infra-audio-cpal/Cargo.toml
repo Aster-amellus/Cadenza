@@ -1,0 +1,9 @@
+[package]
+name = "cadenza-infra-audio-cpal"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cpal = "0.15"
+
+cadenza-ports = { path = "../cadenza-ports" }

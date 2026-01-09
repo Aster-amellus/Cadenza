@@ -1,0 +1,9 @@
+[package]
+name = "cadenza-infra-midi-midir"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+midir = "0.9"
+
+cadenza-ports = { path = "../cadenza-ports" }
