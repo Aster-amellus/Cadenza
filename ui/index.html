@@ -23,6 +23,7 @@
       </header>
 
       <main class="content">
+        <div class="banner is-hidden" id="error-banner"></div>
         <section class="view is-active" id="view-practice">
           <div class="panel">
             <div class="panel-header">
@@ -30,6 +31,18 @@
               <div class="pill" id="practice-status">Idle</div>
             </div>
             <div class="panel-body grid">
+              <div class="card wide">
+                <h3>Score View</h3>
+                <div class="staff-wrap">
+                  <canvas id="staff-view" aria-label="Staff view"></canvas>
+                </div>
+                <div class="piano-roll-wrap">
+                  <canvas id="piano-roll" aria-label="Piano roll"></canvas>
+                </div>
+                <div class="status-row">
+                  <div class="status-text" id="score-title">Load a MIDI to begin.</div>
+                </div>
+              </div>
               <div class="card">
                 <h3>Transport</h3>
                 <div class="controls">
@@ -45,6 +58,19 @@
                   <span>Tempo</span>
                   <strong id="transport-tempo">1.0x</strong>
                 </div>
+                <div class="controls">
+                  <button type="button" class="secondary tempo-btn" data-tempo="0.5">0.5x</button>
+                  <button type="button" class="secondary tempo-btn" data-tempo="0.8">0.8x</button>
+                  <button type="button" class="secondary tempo-btn" data-tempo="1">1.0x</button>
+                </div>
+                <div class="stat">
+                  <span>Loop</span>
+                  <strong id="transport-loop">Off</strong>
+                </div>
+                <div class="controls">
+                  <button id="btn-loop-clear" type="button" class="secondary">Clear Loop</button>
+                </div>
+                <p class="hint">Tip: click to seek; drag on the roll to set loop.</p>
               </div>
               <div class="card">
                 <h3>Judge</h3>
@@ -66,10 +92,43 @@
                 <h3>Load MIDI</h3>
                 <div class="input-row">
                   <input id="midi-path" type="text" placeholder="/path/to/file.mid" />
-                  <button id="btn-browse-midi" type="button">Browse</button>
+                  <button id="btn-browse-midi" type="button" class="secondary">Browse</button>
                 </div>
-                <button id="btn-load-midi">Load</button>
-                <p class="hint">Use an absolute path for now.</p>
+                <div class="controls">
+                  <button id="btn-load-midi" type="button">Load</button>
+                  <button id="btn-load-demo" type="button" class="secondary">Demo</button>
+                </div>
+                <div class="status-row">
+                  <div class="spinner is-hidden" id="midi-load-spinner" aria-hidden="true"></div>
+                  <div class="status-text" id="midi-load-status">Idle</div>
+                </div>
+                <p class="hint">Tip: use Browse to avoid path issues.</p>
+              </div>
+              <div class="card">
+                <h3>PDF → MIDI</h3>
+                <div class="input-row">
+                  <input id="pdf-path" type="text" placeholder="/path/to/score.pdf" />
+                  <button id="btn-browse-pdf" type="button" class="secondary">Browse</button>
+                </div>
+                <div class="input-row">
+                  <input id="midi-output-path" type="text" placeholder="Auto (Downloads/Cadenza/<score>.mid)" />
+                  <button id="btn-browse-midi-output-folder" type="button" class="secondary">Folder</button>
+                  <button id="btn-browse-midi-output" type="button" class="secondary">Save As</button>
+                </div>
+                <div class="controls">
+                  <button id="btn-convert-pdf" type="button">Convert</button>
+                  <button id="btn-cancel-pdf" type="button" class="secondary" disabled>Cancel</button>
+                </div>
+                <div class="status-row">
+                  <div class="spinner is-hidden" id="pdf-convert-spinner" aria-hidden="true"></div>
+                  <div class="status-text" id="pdf-convert-status">Idle</div>
+                </div>
+                <div class="controls">
+                  <button id="btn-open-midi-output" type="button" class="secondary" disabled>Reveal MIDI</button>
+                  <button id="btn-open-musicxml" type="button" class="secondary" disabled>Reveal MusicXML</button>
+                  <button id="btn-open-omr-log" type="button" class="secondary" disabled>Reveal log</button>
+                </div>
+                <p class="hint">Requires Audiveris. Set path in Settings → Audiveris (e.g., /Applications/Audiveris.app).</p>
               </div>
               <div class="card wide">
                 <h3>Recent Input</h3>
@@ -89,7 +148,17 @@
               <div class="card">
                 <h3>Audio Output</h3>
                 <select id="audio-output"></select>
+                <label>Buffer (frames)</label>
+                <select id="audio-buffer">
+                  <option value="">Default</option>
+                  <option value="256">256</option>
+                  <option value="512">512</option>
+                  <option value="1024">1024</option>
+                  <option value="2048">2048</option>
+                </select>
                 <button id="btn-refresh-audio">Refresh</button>
+                <button id="btn-test-audio" type="button" class="secondary">Test Sound</button>
+                <p class="hint">If you hear crackles, try a larger buffer (higher latency).</p>
               </div>
               <div class="card">
                 <h3>MIDI Input</h3>
@@ -104,11 +173,33 @@
                 </label>
               </div>
               <div class="card">
+                <h3>Calibration</h3>
+                <label>Input Offset (ms)</label>
+                <input id="input-offset" type="range" min="-200" max="200" step="1" />
+                <div class="stat">
+                  <span>Offset</span>
+                  <strong id="input-offset-value">0 ms</strong>
+                </div>
+                <button id="btn-input-offset-reset" type="button" class="secondary">Reset</button>
+                <p class="hint">Adjust if judging feels early/late. Does not add monitoring latency.</p>
+              </div>
+              <div class="card">
                 <h3>Master Volume</h3>
                 <input id="master-volume" type="range" min="0" max="1" step="0.01" />
                 <div class="stat">
                   <span>Level</span>
                   <strong id="master-volume-value">0.8</strong>
+                </div>
+              </div>
+              <div class="card">
+                <h3>SoundFont (.sf2)</h3>
+                <div class="input-row">
+                  <input id="sf2-path" type="text" placeholder="/path/to/piano.sf2" />
+                  <button id="btn-browse-sf2" type="button">Browse</button>
+                </div>
+                <button id="btn-load-sf2" type="button">Load</button>
+                <div class="status-row">
+                  <div class="status-text" id="sf2-status">Recommended for realistic piano. See docs/SoundFont.md.</div>
                 </div>
               </div>
               <div class="card">
@@ -119,6 +210,14 @@
                 <input id="bus-auto" type="range" min="0" max="1" step="0.01" />
                 <label>Metronome</label>
                 <input id="bus-metro" type="range" min="0" max="1" step="0.01" />
+              </div>
+              <div class="card">
+                <h3>Audiveris</h3>
+                <div class="input-row">
+                  <input id="audiveris-path" type="text" placeholder="/path/to/audiveris" />
+                  <button id="btn-browse-audiveris" type="button">Browse</button>
+                </div>
+                <button id="btn-save-audiveris">Save</button>
               </div>
               <div class="card wide">
                 <h3>Diagnostics</h3>

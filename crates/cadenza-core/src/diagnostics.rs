@@ -59,7 +59,9 @@ pub fn export_diagnostics(
     )?;
     write_json(
         &dir.join("recent_events.json"),
-        &RecentEvents { events: recent_events },
+        &RecentEvents {
+            events: recent_events,
+        },
     )?;
 
     fs::write(dir.join("logs.txt"), b"logs not configured\n")

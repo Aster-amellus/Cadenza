@@ -42,3 +42,9 @@ MVP 选择成熟的跨平台库，平台差异由库内部承接，核心只面�
 - Audio 线程必须 realtime-safe（不做阻塞 IO、锁竞争、频繁分配）。
 - MIDI 输入线程只做解析与入队，不做业务逻辑。
 - 设备 ID 需要稳定（当前以枚举序号 + 设备名生成）。
+
+6. 当前实现状态（repo）
+
+- 已落地：`cadenza-infra-audio-cpal` / `cadenza-infra-midi-midir` / `cadenza-infra-synth-rustysynth`（可加载 SF2）。
+- 现状限制：音频回调路径仍存在锁（`Mutex`）与少量动态分配，重压下可能出现爆音/卡顿；需要在 v0.1 稳定阶段消除。
+- 设备 ID：目前基于枚举顺序 + 设备名，可能在系统重启或设备顺序变化时发生漂移；后续可考虑更稳定的标识方案。

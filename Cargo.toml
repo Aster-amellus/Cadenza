@@ -8,6 +8,9 @@ members = [
   "crates/cadenza-infra-audio-cpal",
   "crates/cadenza-infra-midi-midir",
   "crates/cadenza-infra-synth-simple",
+  "crates/cadenza-infra-synth-waveguide-piano",
+  "crates/cadenza-infra-synth-rustysynth",
   "crates/cadenza-infra-storage-fs",
+  "crates/cadenza-infra-omr-audiveris",
   "src-tauri",
 ]

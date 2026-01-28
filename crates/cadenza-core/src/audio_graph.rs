@@ -1,11 +1,14 @@
 use crate::audio_params::AudioParams;
 use cadenza_ports::audio::AudioRenderCallback;
+use cadenza_ports::midi::MidiLikeEvent;
 use cadenza_ports::playback::ScheduledEvent;
 use cadenza_ports::synth::SynthPort;
 use cadenza_ports::types::{Bus, SampleTime};
-use parking_lot::Mutex;
 use rtrb::Consumer;
-use std::sync::{atomic::{AtomicU64, Ordering}, Arc};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
 
 pub struct AudioClock {
     sample_time: AtomicU64,
@@ -27,19 +30,22 @@ impl AudioClock {
     }
 }
 
+impl Default for AudioClock {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct AudioGraph {
     synth: Arc<dyn SynthPort>,
     params: Arc<AudioParams>,
     clock: Arc<AudioClock>,
-    state: Mutex<AudioGraphState>,
-}
-
-struct AudioGraphState {
     consumer: Consumer<ScheduledEvent>,
     scratch_l: Vec<f32>,
     scratch_r: Vec<f32>,
     events: Vec<ScheduledEvent>,
     pending: Option<ScheduledEvent>,
+    limiter_gain: f32,
 }
 
 impl AudioGraph {
@@ -48,70 +54,60 @@ impl AudioGraph {
         params: Arc<AudioParams>,
         consumer: Consumer<ScheduledEvent>,
         clock: Arc<AudioClock>,
+        max_frames: usize,
     ) -> Self {
         Self {
             synth,
             params,
             clock,
-            state: Mutex::new(AudioGraphState {
-                consumer,
-                scratch_l: Vec::new(),
-                scratch_r: Vec::new(),
-                events: Vec::new(),
-                pending: None,
-            }),
+            consumer,
+            scratch_l: vec![0.0; max_frames],
+            scratch_r: vec![0.0; max_frames],
+            events: Vec::with_capacity(512),
+            pending: None,
+            limiter_gain: 1.0,
         }
     }
 
-    fn collect_events(
-        state: &mut AudioGraphState,
-        sample_time_end: SampleTime,
-    ) -> &mut Vec<ScheduledEvent> {
-        state.events.clear();
+    fn collect_events(&mut self, sample_time_end: SampleTime) {
+        self.events.clear();
 
-        if let Some(event) = state.pending.take() {
+        if let Some(event) = self.pending.take() {
             if event.sample_time < sample_time_end {
-                state.events.push(event);
+                self.events.push(event);
             } else {
-                state.pending = Some(event);
-                return &mut state.events;
+                self.pending = Some(event);
+                return;
             }
         }
 
-        loop {
-            match state.consumer.pop() {
-                Ok(event) => {
-                    if event.sample_time < sample_time_end {
-                        state.events.push(event);
-                    } else {
-                        state.pending = Some(event);
-                        break;
-                    }
-                }
-                Err(_) => break,
+        while let Ok(event) = self.consumer.pop() {
+            if event.sample_time < sample_time_end {
+                self.events.push(event);
+            } else {
+                self.pending = Some(event);
+                break;
             }
         }
 
-        state.events.sort_by_key(|event| event.sample_time);
-        &mut state.events
+        self.events.sort_by(|a, b| {
+            a.sample_time
+                .cmp(&b.sample_time)
+                .then_with(|| midi_event_rank(&a.event).cmp(&midi_event_rank(&b.event)))
+                .then_with(|| midi_event_note_key(&a.event).cmp(&midi_event_note_key(&b.event)))
+        });
     }
 
-    fn ensure_scratch(state: &mut AudioGraphState, frames: usize) {
-        if state.scratch_l.len() < frames {
-            state.scratch_l.resize(frames, 0.0);
-            state.scratch_r.resize(frames, 0.0);
+    fn ensure_scratch(&mut self, frames: usize) {
+        if self.scratch_l.len() < frames {
+            self.scratch_l.resize(frames, 0.0);
+            self.scratch_r.resize(frames, 0.0);
         }
     }
 
-    fn render_segment(
-        &self,
-        state: &mut AudioGraphState,
-        frames: usize,
-        out_l: &mut [f32],
-        out_r: &mut [f32],
-    ) {
-        let scratch_l = &mut state.scratch_l[..frames];
-        let scratch_r = &mut state.scratch_r[..frames];
+    fn render_segment(&mut self, frames: usize, out_l: &mut [f32], out_r: &mut [f32]) {
+        let scratch_l = &mut self.scratch_l[..frames];
+        let scratch_r = &mut self.scratch_r[..frames];
 
         for value in out_l.iter_mut() {
             *value = 0.0;
@@ -139,46 +135,99 @@ impl AudioGraph {
             out_l[i] *= master;
             out_r[i] *= master;
         }
+
+        let limit = 0.98_f32;
+        let mut peak = 0.0_f32;
+        for i in 0..frames {
+            peak = peak.max(out_l[i].abs());
+            peak = peak.max(out_r[i].abs());
+        }
+
+        let target_gain = if peak > limit { limit / peak } else { 1.0 };
+        let current_gain = self.limiter_gain;
+        let coeff = if target_gain < current_gain {
+            0.25
+        } else {
+            0.01
+        };
+        let new_gain = (current_gain + coeff * (target_gain - current_gain)).clamp(0.0, 1.0);
+        self.limiter_gain = new_gain;
+
+        if new_gain < 0.999 {
+            for i in 0..frames {
+                out_l[i] *= new_gain;
+                out_r[i] *= new_gain;
+            }
+        }
+    }
+}
+
+fn midi_event_rank(event: &MidiLikeEvent) -> u8 {
+    match event {
+        MidiLikeEvent::Cc64 { value } => {
+            if *value >= 64 {
+                0
+            } else {
+                3
+            }
+        }
+        MidiLikeEvent::NoteOff { .. } => 1,
+        MidiLikeEvent::NoteOn { .. } => 2,
+    }
+}
+
+fn midi_event_note_key(event: &MidiLikeEvent) -> u8 {
+    match event {
+        MidiLikeEvent::NoteOn { note, .. } => *note,
+        MidiLikeEvent::NoteOff { note } => *note,
+        MidiLikeEvent::Cc64 { .. } => 0,
     }
 }
 
 impl AudioRenderCallback for AudioGraph {
-    fn render(&self, sample_time_start: SampleTime, out_l: &mut [f32], out_r: &mut [f32]) {
+    fn render(&mut self, sample_time_start: SampleTime, out_l: &mut [f32], out_r: &mut [f32]) {
         let frames = out_l.len().min(out_r.len());
         let sample_time_end = sample_time_start.saturating_add(frames as u64);
 
-        let mut state = self.state.lock();
-        Self::ensure_scratch(&mut state, frames);
+        self.ensure_scratch(frames);
+        self.collect_events(sample_time_end);
 
-        Self::collect_events(&mut state, sample_time_end);
-
+        let playback_enabled = self.params.playback_enabled();
         let mut cursor_sample = sample_time_start;
         let mut cursor_frame = 0usize;
 
-        let events_len = state.events.len();
+        let events_len = self.events.len();
         for idx in 0..events_len {
-            let event = state.events[idx];
-            if event.sample_time < cursor_sample || event.sample_time >= sample_time_end {
+            let event = self.events[idx];
+            if event.sample_time >= sample_time_end {
                 continue;
             }
-            let event_frame = (event.sample_time - cursor_sample) as usize;
+
+            if !playback_enabled
+                && matches!(event.bus, Bus::Autopilot | Bus::MetronomeFx)
+                && matches!(event.event, MidiLikeEvent::NoteOn { .. })
+            {
+                continue;
+            }
+
+            let event_sample = event.sample_time.max(cursor_sample);
+            let event_frame = (event_sample - cursor_sample) as usize;
             if event_frame > 0 {
                 let end = cursor_frame + event_frame;
                 self.render_segment(
-                    &mut state,
                     event_frame,
                     &mut out_l[cursor_frame..end],
                     &mut out_r[cursor_frame..end],
                 );
                 cursor_frame = end;
-                cursor_sample = event.sample_time;
+                cursor_sample = event_sample;
             }
-            self.synth.handle_event(event.bus, event.event, event.sample_time);
+            self.synth
+                .handle_event(event.bus, event.event, event_sample);
         }
 
         if cursor_frame < frames {
             self.render_segment(
-                &mut state,
                 frames - cursor_frame,
                 &mut out_l[cursor_frame..frames],
                 &mut out_r[cursor_frame..frames],

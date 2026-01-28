@@ -1,5 +1,4 @@
 use crate::types::*;
-use std::sync::Arc;
 
 #[derive(thiserror::Error, Debug)]
 pub enum AudioError {
@@ -14,8 +13,8 @@ pub enum AudioError {
 }
 
 /// Audio callback: must be realtime-safe.
-pub trait AudioRenderCallback: Send + Sync + 'static {
-    fn render(&self, sample_time_start: SampleTime, out_l: &mut [f32], out_r: &mut [f32]);
+pub trait AudioRenderCallback: Send + 'static {
+    fn render(&mut self, sample_time_start: SampleTime, out_l: &mut [f32], out_r: &mut [f32]);
 }
 
 pub trait AudioStreamHandle: Send {
@@ -29,6 +28,6 @@ pub trait AudioOutputPort: Send + Sync {
         &self,
         device_id: &DeviceId,
         config: AudioConfig,
-        cb: Arc<dyn AudioRenderCallback>,
+        cb: Box<dyn AudioRenderCallback>,
     ) -> Result<Box<dyn AudioStreamHandle>, AudioError>;
 }

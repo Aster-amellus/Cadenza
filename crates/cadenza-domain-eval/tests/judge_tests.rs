@@ -17,7 +17,10 @@ fn target(id: u64, tick: i64, notes: &[u8]) -> TargetEvent {
 #[test]
 fn perfect_hit_single_note() {
     let cfg = JudgeConfig {
-        window: TimingWindowTicks { perfect: 5, good: 10 },
+        window: TimingWindowTicks {
+            perfect: 5,
+            good: 10,
+        },
         chord_roll: ChordRollTicks(4),
         wrong_note_policy: WrongNotePolicy::RecordOnly,
         advance: AdvanceMode::OnResolve,
@@ -44,7 +47,10 @@ fn perfect_hit_single_note() {
 #[test]
 fn wrong_note_degrades_perfect() {
     let cfg = JudgeConfig {
-        window: TimingWindowTicks { perfect: 3, good: 8 },
+        window: TimingWindowTicks {
+            perfect: 3,
+            good: 8,
+        },
         chord_roll: ChordRollTicks(4),
         wrong_note_policy: WrongNotePolicy::DegradePerfect,
         advance: AdvanceMode::OnResolve,
@@ -76,7 +82,10 @@ fn wrong_note_degrades_perfect() {
 #[test]
 fn chord_roll_allows_split_hits() {
     let cfg = JudgeConfig {
-        window: TimingWindowTicks { perfect: 2, good: 6 },
+        window: TimingWindowTicks {
+            perfect: 2,
+            good: 6,
+        },
         chord_roll: ChordRollTicks(3),
         wrong_note_policy: WrongNotePolicy::RecordOnly,
         advance: AdvanceMode::OnResolve,
@@ -108,7 +117,10 @@ fn chord_roll_allows_split_hits() {
 #[test]
 fn advance_to_emits_miss_after_window() {
     let cfg = JudgeConfig {
-        window: TimingWindowTicks { perfect: 2, good: 6 },
+        window: TimingWindowTicks {
+            perfect: 2,
+            good: 6,
+        },
         chord_roll: ChordRollTicks(3),
         wrong_note_policy: WrongNotePolicy::RecordOnly,
         advance: AdvanceMode::OnResolve,
@@ -118,11 +130,7 @@ fn advance_to_emits_miss_after_window() {
 
     let events = judge.advance_to(200);
 
-    assert!(events.iter().any(|event| matches!(
-        event,
-        JudgeEvent::Miss {
-            target_id: 1,
-            ..
-        }
-    )));
+    assert!(events
+        .iter()
+        .any(|event| matches!(event, JudgeEvent::Miss { target_id: 1, .. })));
 }

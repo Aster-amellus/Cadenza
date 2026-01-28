@@ -27,6 +27,7 @@ pub struct Transport {
     state: TransportState,
     ppq: u16,
     sample_rate_hz: u32,
+    origin_sample: SampleTime,
     tempo_map: TempoMap,
     tempo_multiplier: f32,
     position_tick: Tick,
@@ -112,6 +113,7 @@ impl Transport {
             state: TransportState::Stopped,
             ppq,
             sample_rate_hz,
+            origin_sample: 0,
             tempo_map,
             tempo_multiplier: 1.0,
             position_tick: 0,
@@ -134,10 +136,7 @@ impl Transport {
 
     pub fn stop(&mut self) {
         self.state = TransportState::Stopped;
-        let target_tick = self
-            .loop_range
-            .map(|range| range.start_tick)
-            .unwrap_or(0);
+        let target_tick = self.loop_range.map(|range| range.start_tick).unwrap_or(0);
         self.seek(target_tick);
     }
 
@@ -146,23 +145,38 @@ impl Transport {
         self.position_sample = self.tick_to_sample(tick);
     }
 
+    pub fn align_to_sample_time(&mut self, sample_time: SampleTime) {
+        let relative = self.tick_to_sample_relative(self.position_tick);
+        self.origin_sample = sample_time.saturating_sub(relative);
+        self.position_sample = sample_time;
+    }
+
+    pub fn set_origin_sample(&mut self, origin_sample: SampleTime) {
+        self.origin_sample = origin_sample;
+        self.position_sample = self.tick_to_sample(self.position_tick);
+    }
+
     pub fn set_loop(&mut self, range: Option<LoopRange>) {
         self.loop_range = range;
     }
 
     pub fn set_tempo_multiplier(&mut self, multiplier: f32) {
         self.tempo_multiplier = multiplier.max(0.1);
-        self.position_sample = self.tick_to_sample(self.position_tick);
+        self.recalculate_origin();
     }
 
     pub fn set_sample_rate(&mut self, sample_rate_hz: u32) {
         self.sample_rate_hz = sample_rate_hz;
-        self.position_sample = self.tick_to_sample(self.position_tick);
+        self.recalculate_origin();
+    }
+
+    pub fn sample_rate_hz(&self) -> u32 {
+        self.sample_rate_hz
     }
 
     pub fn update_tempo_map(&mut self, points: Vec<TempoPoint>) {
         self.tempo_map = TempoMap::new(self.ppq, points);
-        self.position_sample = self.tick_to_sample(self.position_tick);
+        self.recalculate_origin();
     }
 
     pub fn advance_by_samples(&mut self, frames: u32) {
@@ -204,11 +218,13 @@ impl Transport {
 
     pub fn tick_to_sample(&self, tick: Tick) -> SampleTime {
         let micros = self.tick_to_micros_scaled(tick);
-        micros_to_samples(micros, self.sample_rate_hz)
+        self.origin_sample
+            .saturating_add(micros_to_samples(micros, self.sample_rate_hz))
     }
 
     pub fn sample_to_tick(&self, sample: SampleTime) -> Tick {
-        let micros = samples_to_micros(sample, self.sample_rate_hz);
+        let relative_sample = sample.saturating_sub(self.origin_sample);
+        let micros = samples_to_micros(relative_sample, self.sample_rate_hz);
         let scaled = (micros as f64 * self.tempo_multiplier as f64).round() as i64;
         self.tempo_map.micros_to_tick(scaled)
     }
@@ -216,6 +232,17 @@ impl Transport {
     fn tick_to_micros_scaled(&self, tick: Tick) -> i64 {
         let base = self.tempo_map.tick_to_micros(tick) as f64;
         (base / self.tempo_multiplier as f64).round() as i64
+    }
+
+    fn tick_to_sample_relative(&self, tick: Tick) -> SampleTime {
+        let micros = self.tick_to_micros_scaled(tick);
+        micros_to_samples(micros, self.sample_rate_hz)
+    }
+
+    fn recalculate_origin(&mut self) {
+        let current_sample = self.position_sample;
+        let relative = self.tick_to_sample_relative(self.position_tick);
+        self.origin_sample = current_sample.saturating_sub(relative);
     }
 }
 

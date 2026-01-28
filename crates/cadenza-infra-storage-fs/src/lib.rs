@@ -30,7 +30,8 @@ impl FsStorage {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|e| StorageError::Io(e.to_string()))?;
         }
-        let data = serde_json::to_vec_pretty(value).map_err(|e| StorageError::Serde(e.to_string()))?;
+        let data =
+            serde_json::to_vec_pretty(value).map_err(|e| StorageError::Serde(e.to_string()))?;
         fs::write(path, data).map_err(|e| StorageError::Io(e.to_string()))
     }
 }

@@ -2,6 +2,21 @@
 
 ---
 
+# Status (implementation vs spec)
+
+This document started as a v0.1 design spec. The implementation has evolved.
+For the current source of truth, see:
+
+- Ports (traits and shared types): `crates/cadenza-ports/src/`
+- UI <-> Core IPC (commands/events): `crates/cadenza-core/src/ipc.rs`
+- Architecture overview: `docs/ARCHITECTURE.md`
+
+Notes:
+
+- Audio volume controls are implemented in core (`AudioParams`) rather than as methods on `AudioOutputPort`.
+- PDF -> MIDI is currently executed by the Tauri shell (background job) to keep AppCore responsive.
+- The UI score view event now includes pedal spans for visualization.
+
 # 0. 范围与原则
 
 ## 范围
@@ -80,9 +95,8 @@
 
 * `list_outputs() -> Vec<AudioOutputDevice>`
 * `open_output(device_id, config, render_callback) -> AudioStreamHandle`
-* `set_master_volume(v)`
-* `set_bus_volume(bus, v)`
-* `close()`
+
+Volume is controlled in core (master + per-bus) and applied when mixing rendered buffers.
 
 **AudioConfig**
 
@@ -217,6 +231,7 @@
 * `SelectMidiInput { device_id }`
 * `ListAudioOutputs`
 * `SelectAudioOutput { device_id, config? }`
+* `TestAudio` (plays a short note on the monitor bus)
 * `SetMonitorEnabled { enabled: bool }`  ✅一键关闭监听
 * `SetBusVolume { bus, volume_0_1 }`
 * `SetMasterVolume { volume_0_1 }`

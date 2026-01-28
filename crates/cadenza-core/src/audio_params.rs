@@ -9,6 +9,7 @@ pub struct AudioParams {
     bus_autopilot: AtomicU32,
     bus_metronome: AtomicU32,
     monitor_enabled: AtomicBool,
+    playback_enabled: AtomicBool,
 }
 
 impl AudioParams {
@@ -19,6 +20,7 @@ impl AudioParams {
             bus_autopilot: AtomicU32::new(settings.bus_autopilot_volume.get().to_bits()),
             bus_metronome: AtomicU32::new(settings.bus_metronome_volume.get().to_bits()),
             monitor_enabled: AtomicBool::new(settings.monitor_enabled),
+            playback_enabled: AtomicBool::new(false),
         }
     }
 
@@ -39,11 +41,21 @@ impl AudioParams {
         self.monitor_enabled.store(enabled, Ordering::Relaxed);
     }
 
+    pub fn set_playback_enabled(&self, enabled: bool) {
+        self.playback_enabled.store(enabled, Ordering::Relaxed);
+    }
+
     pub fn master(&self) -> f32 {
         f32::from_bits(self.master.load(Ordering::Relaxed))
     }
 
     pub fn bus(&self, bus: Bus) -> f32 {
+        if !self.playback_enabled.load(Ordering::Relaxed)
+            && matches!(bus, Bus::Autopilot | Bus::MetronomeFx)
+        {
+            return 0.0;
+        }
+
         let value = match bus {
             Bus::UserMonitor => &self.bus_user,
             Bus::Autopilot => &self.bus_autopilot,
@@ -54,5 +66,9 @@ impl AudioParams {
 
     pub fn monitor_enabled(&self) -> bool {
         self.monitor_enabled.load(Ordering::Relaxed)
+    }
+
+    pub fn playback_enabled(&self) -> bool {
+        self.playback_enabled.load(Ordering::Relaxed)
     }
 }

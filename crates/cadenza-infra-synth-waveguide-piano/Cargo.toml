@@ -1,0 +1,9 @@
+[package]
+name = "cadenza-infra-synth-waveguide-piano"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cadenza-ports = { path = "../cadenza-ports" }
+parking_lot = "0.12"
+

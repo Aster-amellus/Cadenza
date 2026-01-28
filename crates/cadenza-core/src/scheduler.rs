@@ -51,7 +51,12 @@ impl Scheduler {
     }
 
     pub fn set_score(&mut self, mut events: Vec<PlaybackMidiEvent>) {
-        events.sort_by_key(|event| event.tick);
+        events.sort_by(|a, b| {
+            a.tick
+                .cmp(&b.tick)
+                .then_with(|| midi_event_rank(&a.event).cmp(&midi_event_rank(&b.event)))
+                .then_with(|| midi_event_note_key(&a.event).cmp(&midi_event_note_key(&b.event)))
+        });
         self.events = events;
         self.cursor = 0;
         self.queue.clear();
@@ -134,5 +139,29 @@ impl Scheduler {
                 _ => Some(Bus::Autopilot),
             },
         }
+    }
+}
+
+fn midi_event_rank(event: &cadenza_ports::midi::MidiLikeEvent) -> u8 {
+    use cadenza_ports::midi::MidiLikeEvent;
+    match event {
+        MidiLikeEvent::Cc64 { value } => {
+            if *value >= 64 {
+                0
+            } else {
+                3
+            }
+        }
+        MidiLikeEvent::NoteOff { .. } => 1,
+        MidiLikeEvent::NoteOn { .. } => 2,
+    }
+}
+
+fn midi_event_note_key(event: &cadenza_ports::midi::MidiLikeEvent) -> u8 {
+    use cadenza_ports::midi::MidiLikeEvent;
+    match event {
+        MidiLikeEvent::NoteOn { note, .. } => *note,
+        MidiLikeEvent::NoteOff { note } => *note,
+        MidiLikeEvent::Cc64 { .. } => 0,
     }
 }

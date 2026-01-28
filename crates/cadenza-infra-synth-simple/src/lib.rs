@@ -156,9 +156,9 @@ impl Inner {
             }
         }
 
-        state.voices.retain(|voice| {
-            voice.key_down || voice.sustained || voice.release_samples_left > 0
-        });
+        state
+            .voices
+            .retain(|voice| voice.key_down || voice.sustained || voice.release_samples_left > 0);
     }
 }
 
@@ -175,6 +175,11 @@ impl BusState {
 impl SynthPort for SimpleSynth {
     fn load_soundfont_from_path(&self, _path: &str) -> Result<SoundFontInfo, SynthError> {
         Err(SynthError::UnsupportedFormat)
+    }
+
+    fn set_sample_rate(&self, sample_rate_hz: u32) {
+        let mut inner = self.inner.lock();
+        inner.sample_rate_hz = sample_rate_hz as f32;
     }
 
     fn set_program(&self, _bus: Bus, _gm_program: u8) -> Result<(), SynthError> {

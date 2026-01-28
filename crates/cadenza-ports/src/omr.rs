@@ -3,6 +3,7 @@ use std::path::PathBuf;
 #[derive(Clone, Debug)]
 pub struct OmrOptions {
     pub enable_diagnostics: bool,
+    pub engine_path: Option<String>,
 }
 
 #[derive(Clone, Debug)]

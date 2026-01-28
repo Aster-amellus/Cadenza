@@ -1,7 +1,8 @@
-use cadenza_ports::midi::{MidiError, MidiInputPort, MidiInputStream, MidiLikeEvent, PlayerEvent};
+use cadenza_ports::midi::{
+    MidiError, MidiInputPort, MidiInputStream, MidiLikeEvent, PlayerEvent, PlayerEventCallback,
+};
 use cadenza_ports::types::{DeviceId, MidiInputDevice};
 use midir::{Ignore, MidiInput};
-use std::sync::Arc;
 use std::time::Instant;
 
 pub struct MidirMidiInputPort {
@@ -16,8 +17,8 @@ impl MidirMidiInputPort {
     }
 
     fn create_midi_in(&self) -> Result<MidiInput, MidiError> {
-        let midi_in = MidiInput::new(&self.client_name)
-            .map_err(|e| MidiError::Backend(e.to_string()))?;
+        let midi_in =
+            MidiInput::new(&self.client_name).map_err(|e| MidiError::Backend(e.to_string()))?;
         Ok(midi_in)
     }
 
@@ -71,7 +72,7 @@ impl Default for MidirMidiInputPort {
 }
 
 pub struct MidirMidiInputStream {
-    connection: Option<midir::MidiInputConnection<Arc<dyn Fn(PlayerEvent) + Send + Sync>>>,
+    connection: Option<midir::MidiInputConnection<PlayerEventCallback>>,
 }
 
 impl MidiInputStream for MidirMidiInputStream {
@@ -105,7 +106,7 @@ impl MidiInputPort for MidirMidiInputPort {
     fn open_input(
         &self,
         device_id: &DeviceId,
-        cb: Arc<dyn Fn(PlayerEvent) + Send + Sync + 'static>,
+        cb: PlayerEventCallback,
     ) -> Result<Box<dyn MidiInputStream>, MidiError> {
         let mut midi_in = self.create_midi_in()?;
         midi_in.ignore(Ignore::None);

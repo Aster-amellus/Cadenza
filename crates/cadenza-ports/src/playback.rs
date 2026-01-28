@@ -74,5 +74,8 @@ pub trait PlaybackPort: Send + Sync {
     fn set_tempo_multiplier(&self, multiplier: f32) -> Result<(), PlaybackError>;
     fn set_mode(&self, mode: PlaybackMode) -> Result<(), PlaybackError>;
 
-    fn poll_scheduled_events(&self, window_samples: u64) -> Result<Vec<ScheduledEvent>, PlaybackError>;
+    fn poll_scheduled_events(
+        &self,
+        window_samples: u64,
+    ) -> Result<Vec<ScheduledEvent>, PlaybackError>;
 }

@@ -4,10 +4,17 @@ use std::{sync::Arc, time::Instant};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MidiLikeEvent {
-    NoteOn { note: u8, velocity: u8 },
-    NoteOff { note: u8 },
+    NoteOn {
+        note: u8,
+        velocity: u8,
+    },
+    NoteOff {
+        note: u8,
+    },
     /// CC64: value 0..127. pedal_down = value >= 64
-    Cc64 { value: u8 },
+    Cc64 {
+        value: u8,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

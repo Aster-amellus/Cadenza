@@ -47,7 +47,9 @@ pub enum MissReason {
 
 #[derive(Clone, Debug)]
 pub enum JudgeEvent {
-    FocusChanged { target_id: Option<u64> },
+    FocusChanged {
+        target_id: Option<u64>,
+    },
     Hit {
         target_id: u64,
         grade: Grade,
@@ -252,7 +254,12 @@ impl Judge {
         });
     }
 
-    fn update_stats_on_hit(&mut self, grade: Grade, wrong_notes: u32, events: &mut Vec<JudgeEvent>) {
+    fn update_stats_on_hit(
+        &mut self,
+        grade: Grade,
+        wrong_notes: u32,
+        events: &mut Vec<JudgeEvent>,
+    ) {
         self.stats.hit += 1;
         self.stats.combo += 1;
         self.stats.wrong += wrong_notes;

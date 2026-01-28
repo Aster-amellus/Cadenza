@@ -22,6 +22,7 @@ pub struct SoundFontInfo {
 /// - handle_event/render are called from audio thread (must be realtime-safe)
 pub trait SynthPort: Send + Sync {
     fn load_soundfont_from_path(&self, path: &str) -> Result<SoundFontInfo, SynthError>;
+    fn set_sample_rate(&self, sample_rate_hz: u32);
     fn set_program(&self, bus: Bus, gm_program: u8) -> Result<(), SynthError>;
 
     /// Called by audio thread: inject events into synth (per bus state, includes CC64 sustain)

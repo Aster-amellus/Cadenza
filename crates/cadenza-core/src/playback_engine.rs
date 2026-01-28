@@ -109,7 +109,10 @@ impl PlaybackPort for PlaybackEngine {
         Ok(())
     }
 
-    fn poll_scheduled_events(&self, _window_samples: u64) -> Result<Vec<ScheduledEvent>, PlaybackError> {
+    fn poll_scheduled_events(
+        &self,
+        _window_samples: u64,
+    ) -> Result<Vec<ScheduledEvent>, PlaybackError> {
         let mut state = self.state.lock();
         let PlaybackState {
             transport,
